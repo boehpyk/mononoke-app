@@ -1,0 +1,21 @@
+{
+    "name": "boehpyk/mn-test",
+    "type": "project",
+    "require": {
+        "kekke/mononoke": "^0.1.4"
+    },
+    "require-dev": {
+        "swoole/ide-helper": "^6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "MononokeApp\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "boehpyk",
+            "email": "boehpyk@gmail.com"
+        }
+    ]
+}
