@@ -23,23 +23,21 @@ class Service extends MononokeService
         return "OK";
     }
 
-    #[Http('GET', '/json')]
+    #[Http(method: HttpMethod::GET, path: '/json')]
     public function json(): array
     {
         return ['test' => 'json?'];
     }
 
-    #[Http('GET', '/custom')]
+    #[Http(method: HttpMethod::GET, path: '/custom')]
     public function custom(): Psr7Response
     {
         return new Psr7Response(201, ['Authorization' => 'Bearer XXX'], "Body");
     }
 
-    #[Http('POST', '/post')]
+    #[Http(method: HttpMethod::POST, path: '/post')]
     public function post(Request $request): Psr7Response
     {
-        var_dump($request->header);
-        var_dump($request->getContent());
         return new Psr7Response(201, ['Authorization' => 'Bearer XXX'], "Body");
     }
 
