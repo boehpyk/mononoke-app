@@ -1,0 +1,53 @@
+# Multi-stage build for minimal production image
+FROM phpswoole/swoole:php8.4 AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions
+RUN docker-php-ext-install pcntl mysqli
+
+# Copy composer from official image
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /app
+
+# Install dependencies
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+
+# Copy application code
+COPY src/ ./src/
+
+# Final production stage
+FROM phpswoole/swoole:php8.4-slim
+
+# Install only runtime dependencies (minimal)
+RUN apt-get update && apt-get install -y \
+    --no-install-recommends \
+    libzip4 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install only necessary PHP extensions
+RUN docker-php-ext-install pcntl mysqli
+
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+WORKDIR /app
+
+# Copy from builder stage
+COPY --from=builder --chown=appuser:appuser /app /app
+
+# Switch to non-root user
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD ps aux | grep -v grep | grep "vendor/bin/app" || exit 1
+
+# No shell needed in production - direct execution
+ENTRYPOINT ["vendor/bin/mononoke", "src/Service.php"]

@@ -1,61 +1,66 @@
-#-----------------------------------------------------------
-# Argumants
-#-----------------------------------------------------------
+.PHONY: help up down restart logs prod.up prod.down prod.restart prod.logs clean
 
-service ?= http.php
-tag ?= mononoke
-ports ?= 80:80
-APP_NAME = mononoke
+# Colors
+CYAN := \033[36m
+GREEN := \033[32m
+YELLOW := \033[93m
+RED := \033[31m
+BLUE := \033[34m
+MAGENTA := \033[35m
+RESET := \033[0m
+BOLD := \033[1m
 
-#-----------------------------------------------------------
-# Management
-#-----------------------------------------------------------
+help:
+	@echo "$(BOLD)$(CYAN)Available commands:$(RESET)"
+	@echo ""
+	@echo "$(BOLD)$(GREEN)Development:$(RESET)"
+	@echo "  $(YELLOW)make up$(RESET)        - Start development environment"
+	@echo "  $(YELLOW)make down$(RESET)      - Stop development environment"
+	@echo "  $(YELLOW)make build$(RESET)     - Build containers"
+	@echo "  $(YELLOW)make restart$(RESET)   - Restart development environment"
+	@echo "  $(YELLOW)make logs$(RESET)      - Show development logs"
+	@echo ""
+	@echo "$(BOLD)$(BLUE)Production:$(RESET)"
+	@echo "  $(YELLOW)make prod.up$(RESET)       - Start production environment"
+	@echo "  $(YELLOW)make prod.down$(RESET)     - Stop production environment"
+	@echo "  $(YELLOW)make prod.restart$(RESET)  - Restart production environment"
+	@echo "  $(YELLOW)make prod.logs$(RESET)     - Show production logs"
+	@echo ""
+	@echo "$(BOLD)$(RED)Cleanup:$(RESET)"
+	@echo "  $(YELLOW)make clean$(RESET)         - Remove all containers, volumes, and images"
 
-help: ## Show this help message
-	@grep -E '^[a-zA-Z0-9_.-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-    	| awk 'BEGIN {FS = ":.*?## "}; {printf "  make %-20s %s\n", $$1, $$2}'
+# Development commands
+up:
+	docker compose -f docker-compose.dev.yml up -d
 
-build: ## Build container based on current Docker file with "tag" argument. Example: "make build tag=mononoke"
-	@echo "Building single container with tag ${tag}"
-	docker build -t ${tag} .
+down:
+	docker compose -f docker-compose.dev.yml down
 
-run: ## Run container with given tag, ports and service. Example: "make run tag=mononoke ports=8080:80 service=http.php"
-	@echo "Running single container tagged as ${tag}. Ports: ${ports}"
-	docker run --rm --name ${tag} -p ${ports} ${tag} examples/${service}
+# Build containers
+build:
+	docker compose -f docker-compose.dev.yml build --no-cache
 
-stop: ## Stop running container with given tag. Example: "make stop tag=mononoke"
-	@echo "Stop container tagged as ${tag}."
-	docker stop ${tag}
+restart:
+	docker compose -f docker-compose.dev.yml restart mononoke
 
-up: ## Start all containers specified in docker-compose. Example: "make up service=sns.php". Default service: http.php
-	@echo "Running containers in the background..."
-	SERVICE_FILE=$(service) docker compose up -d
+logs:
+	docker compose -f docker-compose.dev.yml logs -f mononoke
 
-down: ## Stop all containers specified in docker-compose.
-	@echo "Stopping and removing containers..."
-	docker compose down --remove-orphans
+# Production commands
+prod.up:
+	docker compose -f docker-compose.prod.yml up --build -d
 
-build.all: ## Build all containers specified in docker-compose
-	@echo "Building all containers..."
-	docker compose build
+prod.down:
+	docker compose -f docker-compose.prod.yml down
 
-ps: ## Show list of running containers
-	@echo "Listing running containers..."
-	docker compose ps
+prod.restart:
+	docker compose -f docker-compose.prod.yml restart mononoke
 
-restart: ## Restart all containers
-	@echo "Restarting containers..."
-	docker compose restart
+prod.logs:
+	docker compose -f docker-compose.prod.yml logs -f mononoke
 
-logs: ## View output from containers
-	docker compose logs --tail 500
-
-fl: ## Follow output from containers (short of 'follow logs')
-	docker compose logs --tail 500 -f
-
-#-----------------------------------------------------------
-# Application
-#-----------------------------------------------------------
-
-shell: ## Enter the mononoke container
-	docker compose exec ${APP_NAME} /bin/bash
+# Cleanup
+clean:
+	docker compose -f docker-compose.dev.yml down -v --remove-orphans
+	docker compose -f docker-compose.prod.yml down -v --remove-orphans
+	docker system prune -f

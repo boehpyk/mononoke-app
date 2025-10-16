@@ -1,0 +1,50 @@
+services:
+  localstack:
+    image: localstack/localstack:3
+    container_name: localstack-dev
+    ports:
+      - "4566:4566"
+      - "4571:4571"
+    environment:
+      - SERVICES=sns,sqs
+      - DEBUG=1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "localstack_data:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mononoke:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: mononoke-dev
+    restart: on-failure
+    tty: true
+    depends_on:
+      localstack:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "9003:9003"  # Xdebug port
+    environment:
+      - APP_ENV=development
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - XDEBUG_MODE=debug
+      - XDEBUG_CLIENT_HOST=host.docker.internal
+      - SERVICE_FILE=src/Service.php
+      - HOT_RELOAD=true
+    volumes:
+      - ./src/:/app/src/
+      - ./composer.json:/app/composer.json
+
+volumes:
+  localstack_data:
