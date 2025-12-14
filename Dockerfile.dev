@@ -1,3 +1,8 @@
+FROM composer:latest AS composer
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --optimize-autoloader --no-interaction
+
 FROM phpswoole/swoole:php8.4
 
 # Install development tools
@@ -29,7 +34,7 @@ WORKDIR /app
 
 # Install dependencies with dev packages
 COPY composer.json composer.lock* ./
-RUN composer update && composer install --optimize-autoloader
+COPY --from=composer /app/vendor ./vendor
 
 # Copy entrypoint script
 COPY docker-entrypoint.dev.sh /usr/local/bin/docker-entrypoint.sh
