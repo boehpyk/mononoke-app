@@ -1,6 +1,6 @@
 FROM composer:latest AS composer
 WORKDIR /app
-COPY composer.json composer.lock ./
+COPY composer.json ./
 RUN composer install --optimize-autoloader --no-interaction
 
 FROM phpswoole/swoole:php8.4
