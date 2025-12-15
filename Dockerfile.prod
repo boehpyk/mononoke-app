@@ -1,15 +1,10 @@
 # Multi-stage build for minimal production image
 FROM composer:latest AS composer
 WORKDIR /app
-COPY composer.json ./
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+COPY composer.json composer.lock ./
+RUN composer install --optimize-autoloader --no-interaction
 
 FROM phpswoole/swoole:php8.4 AS builder
-
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
 RUN docker-php-ext-install pcntl mysqli
@@ -27,20 +22,16 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progre
 COPY src/ ./src/
 
 # Final production stage
-FROM phpswoole/swoole:php8.4-slim
+FROM phpswoole/swoole:php8.4-alpine
 
-# Install only runtime dependencies (minimal)
-RUN apt-get update && apt-get install -y \
-    --no-install-recommends \
-    libzip4 \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+# Install only runtime dependencies (minimal, use apk for Alpine)
+RUN apk add --no-cache libzip
 
 # Install only necessary PHP extensions
 RUN docker-php-ext-install pcntl mysqli
 
 # Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN addgroup -S appuser && adduser -S appuser -G appuser
 
 WORKDIR /app
 
