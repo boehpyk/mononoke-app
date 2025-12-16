@@ -45,6 +45,9 @@ services:
     volumes:
       - ./src/:/app/src/
       - ./composer.json:/app/composer.json
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
 
 volumes:
   localstack_data:
